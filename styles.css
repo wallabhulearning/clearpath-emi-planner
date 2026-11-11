@@ -102,12 +102,14 @@ h1 span { color: var(--green); }
 
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(290px, .8fr); gap: 18px; align-items: start; margin-top: 20px; }
 .panel { background: white; border: 1px solid #e9ece7; border-radius: 11px; }
-.loans-panel { padding: 25px 26px 18px; }
+.loans-panel, .cards-panel { padding: 25px 26px 18px; }
+.cards-panel { grid-column: 1 / -1; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .section-heading .eyebrow { margin-bottom: 6px; }
 h2 { margin-bottom: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 20px; letter-spacing: -.6px; }
 .count-pill { padding: 6px 10px; border-radius: 20px; background: #f2f4f1; color: #737f79; font-size: 11px; font-weight: 600; }
 .loan-list { display: grid; gap: 10px; }
+.card-list { display: grid; gap: 10px; }
 .loan-card { padding: 16px; border: 1px solid var(--line); border-radius: 9px; }
 .loan-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .loan-name { margin: 0 0 4px; font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; font-weight: 700; }
@@ -121,6 +123,11 @@ h2 { margin-bottom: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 20
 .amount-block strong { font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; font-weight: 700; white-space: nowrap; }
 .amount-block:nth-child(2) { text-align: center; }
 .amount-block:last-child { text-align: right; }
+.card-amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 15px; }
+.card-amounts .amount-block:nth-child(2) { text-align: center; }
+.card-amounts .amount-block:last-child { text-align: right; }
+.card-paid { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid #eff0ed; color: #788394; font-size: 11px; }
+.card-paid strong { color: var(--ink); }
 .loan-progress { height: 4px; margin-top: 13px; overflow: hidden; border-radius: 4px; background: #eef0ed; }
 .loan-progress span { display: block; width: 100%; height: 100%; border-radius: inherit; background: #90b19a; }
 .empty-state { padding: 39px 18px 34px; text-align: center; }
@@ -132,6 +139,13 @@ h2 { margin-bottom: 0; font-family: "Segoe UI", Arial, sans-serif; font-size: 20
 .side-column { display: grid; gap: 14px; }
 .form-panel, .budget-panel { padding: 21px 22px; }
 .form-panel h2, .budget-panel h2 { margin-bottom: 18px; font-size: 17px; }
+.cards-content { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .8fr); gap: 18px; align-items: start; }
+.card-editor { padding: 18px; border: 1px solid #edf0eb; border-radius: 9px; background: #fafbf9; }
+.card-editor .eyebrow { margin-bottom: 7px; }
+.card-editor h3 { margin-bottom: 14px; font-family: "Segoe UI", Arial, sans-serif; font-size: 17px; letter-spacing: -.3px; }
+.card-empty-state { padding: 30px 16px; }
+.card-editor form label:first-of-type { margin-top: 0; }
+.card-editor form .field-help { line-height: 1.5; }
 form label { display: block; margin: 13px 0 6px; color: #4a5664; font-size: 11px; font-weight: 600; }
 form input {
   width: 100%;
@@ -165,6 +179,7 @@ form input:focus { border-color: #6e9a7a; box-shadow: 0 0 0 3px #eaf2eb; }
 @media (max-width: 820px) {
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, .85fr); }
+  .cards-content { grid-template-columns: minmax(0, 1.1fr) minmax(260px, .9fr); }
 }
 
 @media (max-width: 650px) {
@@ -183,7 +198,8 @@ form input:focus { border-color: #6e9a7a; box-shadow: 0 0 0 3px #eaf2eb; }
   .summary-value { margin-top: 12px; font-size: 21px; }
   .summary-foot { font-size: 10px; }
   .content-grid { grid-template-columns: 1fr; gap: 13px; margin-top: 14px; }
-  .loans-panel { padding: 21px 17px 15px; }
+  .loans-panel, .cards-panel { padding: 21px 17px 15px; }
+  .cards-content { grid-template-columns: 1fr; gap: 14px; }
   .side-column { gap: 13px; }
   .form-panel, .budget-panel { padding: 20px 18px; }
   .footer { gap: 12px; font-size: 9px; }

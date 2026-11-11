@@ -14,8 +14,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-IN", {
 
 const elements = {
   notice: document.querySelector("#notice"),
-  totalRemaining: document.querySelector("#total-remaining"),
+  totalDue: document.querySelector("#total-due"),
   loanCount: document.querySelector("#loan-count"),
+  totalCardLimit: document.querySelector("#total-card-limit"),
+  availableCardLimit: document.querySelector("#available-card-limit"),
+  cardPaidSummary: document.querySelector("#card-paid-summary"),
   salarySummary: document.querySelector("#salary-summary"),
   paymentsSummary: document.querySelector("#payments-summary"),
   leftoverSummary: document.querySelector("#leftover-summary"),
@@ -24,6 +27,17 @@ const elements = {
   loanCountPill: document.querySelector("#loan-count-pill"),
   loanList: document.querySelector("#loan-list"),
   emptyState: document.querySelector("#empty-state"),
+  cardCountPill: document.querySelector("#card-count-pill"),
+  cardList: document.querySelector("#card-list"),
+  cardEmptyState: document.querySelector("#card-empty-state"),
+  cardForm: document.querySelector("#card-form"),
+  cardFormHeading: document.querySelector("#card-form-heading"),
+  cardName: document.querySelector("#card-name"),
+  cardLimit: document.querySelector("#card-limit"),
+  cardDue: document.querySelector("#card-due"),
+  cardPaid: document.querySelector("#card-paid"),
+  submitCard: document.querySelector("#submit-card"),
+  cancelCardEdit: document.querySelector("#cancel-card-edit"),
   loanForm: document.querySelector("#loan-form"),
   formHeading: document.querySelector("#form-heading"),
   loanName: document.querySelector("#loan-name"),
@@ -36,8 +50,9 @@ const elements = {
   salary: document.querySelector("#salary"),
 };
 
-let state = { salaryCents: 0, loans: [] };
+let state = { salaryCents: 0, loans: [], cards: [] };
 let editingId = null;
+let editingCardId = null;
 let deferredInstallPrompt = null;
 
 function showNotice(message) {
@@ -59,6 +74,11 @@ function toCents(value) {
 
 function fromCents(cents) {
   return currency.format(cents / 100);
+}
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function formatDate(dateString) {
@@ -110,9 +130,11 @@ function loadState() {
   if (!saved) return;
 
   const parsed = JSON.parse(saved);
+  const cards = parsed && parsed.cards === undefined ? [] : parsed && parsed.cards;
   if (
     !parsed ||
     !Array.isArray(parsed.loans) ||
+    !Array.isArray(cards) ||
     !Number.isSafeInteger(parsed.salaryCents) ||
     parsed.salaryCents < 0 ||
     !parsed.loans.every((loan) =>
@@ -124,11 +146,38 @@ function loadState() {
       Number.isSafeInteger(loan.paymentCents) &&
       loan.paymentCents > 0 &&
       isValidDateString(loan.dueDate)
+    ) ||
+    !cards.every((card) =>
+      card &&
+      typeof card.id === "string" &&
+      typeof card.name === "string" &&
+      Number.isSafeInteger(card.limitCents) &&
+      card.limitCents > 0 &&
+      Number.isSafeInteger(card.dueCents) &&
+      card.dueCents >= 0 &&
+      Number.isSafeInteger(card.paidThisMonthCents) &&
+      card.paidThisMonthCents >= 0 &&
+      typeof card.paidMonth === "string" &&
+      /^\d{4}-\d{2}$/.test(card.paidMonth)
     )
   ) {
     throw new Error("Saved loan information is not in the expected format.");
   }
-  state = { salaryCents: parsed.salaryCents, loans: parsed.loans };
+  const month = getCurrentMonthKey();
+  state = {
+    salaryCents: parsed.salaryCents,
+    loans: parsed.loans,
+    cards,
+  };
+}
+
+function resetExpiredCardPayments() {
+  const month = getCurrentMonthKey();
+  if (!state.cards.some((card) => card.paidMonth !== month)) return false;
+  const cards = state.cards.map((card) => card.paidMonth === month
+    ? card
+    : { ...card, paidThisMonthCents: 0, paidMonth: month });
+  return commitState({ ...state, cards });
 }
 
 function makeElement(tag, className, text) {
@@ -176,25 +225,72 @@ function renderLoan(loan) {
   return card;
 }
 
+function renderCreditCard(creditCard) {
+  const card = makeElement("article", "loan-card");
+  const top = makeElement("div", "loan-topline");
+  const info = makeElement("div");
+  info.append(makeElement("h3", "loan-name", creditCard.name));
+
+  const actions = makeElement("div", "loan-actions");
+  actions.append(
+    makeElement("button", "text-button", "Edit"),
+    makeElement("button", "text-button delete", "Remove")
+  );
+  const [editButton, deleteButton] = actions.querySelectorAll("button");
+  editButton.type = "button";
+  editButton.setAttribute("aria-label", `Edit ${creditCard.name}`);
+  editButton.addEventListener("click", () => beginEditCard(creditCard));
+  deleteButton.type = "button";
+  deleteButton.setAttribute("aria-label", `Remove ${creditCard.name}`);
+  deleteButton.addEventListener("click", () => removeCard(creditCard.id));
+  top.append(info, actions);
+
+  const amounts = makeElement("div", "card-amounts");
+  const limit = makeElement("div", "amount-block");
+  limit.append(makeElement("small", "", "Card limit"), makeElement("strong", "", fromCents(creditCard.limitCents)));
+  const due = makeElement("div", "amount-block");
+  due.append(makeElement("small", "", "Amount due"), makeElement("strong", "", fromCents(creditCard.dueCents)));
+  const available = makeElement("div", "amount-block");
+  available.append(makeElement("small", "", "Available"), makeElement("strong", "", fromCents(creditCard.limitCents - creditCard.dueCents)));
+  amounts.append(limit, due, available);
+  const paid = makeElement("p", "card-paid");
+  paid.append(
+    document.createTextNode("Paid this month: "),
+    makeElement("strong", "", fromCents(creditCard.paidThisMonthCents))
+  );
+  card.append(top, amounts, paid);
+  return card;
+}
+
 function render() {
   elements.loanList.replaceChildren(...state.loans.map(renderLoan));
-  const totalRemaining = state.loans.reduce((sum, loan) => sum + loan.remainingCents, 0);
-  const monthlyPaidCents = state.loans.reduce((sum, loan) => sum + loan.paymentCents, 0);
-  const leftover = state.salaryCents - monthlyPaidCents;
-  const count = state.loans.length;
+  elements.cardList.replaceChildren(...state.cards.map(renderCreditCard));
+  const totalLoanDue = state.loans.reduce((sum, loan) => sum + loan.remainingCents, 0);
+  const totalCardDue = state.cards.reduce((sum, card) => sum + card.dueCents, 0);
+  const totalCardLimit = state.cards.reduce((sum, card) => sum + card.limitCents, 0);
+  const cardPaidThisMonth = state.cards.reduce((sum, card) => sum + card.paidThisMonthCents, 0);
+  const monthlyLoanPayments = state.loans.reduce((sum, loan) => sum + loan.paymentCents, 0);
+  const leftover = state.salaryCents - monthlyLoanPayments - cardPaidThisMonth;
+  const loanCount = state.loans.length;
+  const cardCount = state.cards.length;
   const latestClosure = state.loans.reduce((latest, loan) => {
     const closure = estimate(loan).closureDate;
     return !latest || closure > latest ? closure : latest;
   }, null);
 
-  elements.totalRemaining.textContent = fromCents(totalRemaining);
-  elements.loanCount.textContent = `Across ${count} ${count === 1 ? "loan" : "loans"}`;
+  elements.totalDue.textContent = fromCents(totalLoanDue + totalCardDue);
+  elements.loanCount.textContent = `${loanCount} ${loanCount === 1 ? "loan" : "loans"} · ${cardCount} ${cardCount === 1 ? "card" : "cards"}`;
+  elements.totalCardLimit.textContent = fromCents(totalCardLimit);
+  elements.availableCardLimit.textContent = fromCents(totalCardLimit - totalCardDue);
+  elements.cardPaidSummary.textContent = fromCents(cardPaidThisMonth);
   elements.salarySummary.textContent = fromCents(state.salaryCents);
-  elements.paymentsSummary.textContent = fromCents(monthlyPaidCents);
+  elements.paymentsSummary.textContent = fromCents(monthlyLoanPayments);
   elements.leftoverSummary.textContent = fromCents(leftover);
   elements.debtFreeDate.textContent = latestClosure ? dateFormatter.format(latestClosure) : "—";
-  elements.loanCountPill.textContent = `${count} ${count === 1 ? "loan" : "loans"}`;
-  elements.emptyState.hidden = count > 0;
+  elements.loanCountPill.textContent = `${loanCount} ${loanCount === 1 ? "loan" : "loans"}`;
+  elements.cardCountPill.textContent = `${cardCount} ${cardCount === 1 ? "card" : "cards"}`;
+  elements.emptyState.hidden = loanCount > 0;
+  elements.cardEmptyState.hidden = cardCount > 0;
 
   if (document.activeElement !== elements.salary) elements.salary.value = state.salaryCents / 100 || "";
 }
@@ -222,6 +318,32 @@ function beginEdit(loan) {
 function removeLoan(id) {
   const nextState = { ...state, loans: state.loans.filter((loan) => loan.id !== id) };
   if (editingId === id) resetLoanForm();
+  if (commitState(nextState)) render();
+}
+
+function resetCardForm() {
+  editingCardId = null;
+  elements.cardForm.reset();
+  elements.cardFormHeading.textContent = "Add a card";
+  elements.submitCard.innerHTML = 'Add card <span aria-hidden="true">＋</span>';
+  elements.cancelCardEdit.hidden = true;
+}
+
+function beginEditCard(creditCard) {
+  editingCardId = creditCard.id;
+  elements.cardName.value = creditCard.name;
+  elements.cardLimit.value = (creditCard.limitCents / 100).toFixed(2);
+  elements.cardDue.value = (creditCard.dueCents / 100).toFixed(2);
+  elements.cardPaid.value = (creditCard.paidThisMonthCents / 100).toFixed(2);
+  elements.cardFormHeading.textContent = "Update your card";
+  elements.submitCard.textContent = "Save changes";
+  elements.cancelCardEdit.hidden = false;
+  elements.cardName.focus();
+}
+
+function removeCard(id) {
+  const nextState = { ...state, cards: state.cards.filter((card) => card.id !== id) };
+  if (editingCardId === id) resetCardForm();
   if (commitState(nextState)) render();
 }
 
@@ -257,6 +379,42 @@ elements.loanForm.addEventListener("submit", (event) => {
 
 elements.cancelEdit.addEventListener("click", resetLoanForm);
 
+elements.cardForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const limitCents = toCents(elements.cardLimit.value);
+  const dueCents = toCents(elements.cardDue.value);
+  const paidThisMonthCents = toCents(elements.cardPaid.value);
+
+  if (
+    !elements.cardName.value.trim() ||
+    limitCents === null ||
+    limitCents <= 0 ||
+    dueCents === null ||
+    paidThisMonthCents === null
+  ) {
+    showNotice("Enter a card name, a card limit above zero, and valid non-negative due and payment amounts.");
+    return;
+  }
+
+  const creditCard = {
+    id: editingCardId || (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function" ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    name: elements.cardName.value.trim(),
+    limitCents,
+    dueCents,
+    paidThisMonthCents,
+    paidMonth: getCurrentMonthKey(),
+  };
+  const cards = editingCardId
+    ? state.cards.map((card) => card.id === editingCardId ? creditCard : card)
+    : [...state.cards, creditCard];
+  if (commitState({ ...state, cards })) {
+    resetCardForm();
+    render();
+  }
+});
+
+elements.cancelCardEdit.addEventListener("click", resetCardForm);
+
 elements.budgetForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const salaryCents = toCents(elements.salary.value || "0");
@@ -266,6 +424,11 @@ elements.budgetForm.addEventListener("submit", (event) => {
   }
   const nextState = { ...state, salaryCents };
   if (commitState(nextState)) render();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (resetExpiredCardPayments()) render();
 });
 
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -289,6 +452,7 @@ window.addEventListener("appinstalled", () => {
 
 try {
   loadState();
+  resetExpiredCardPayments();
   render();
 } catch (error) {
   showNotice("Saved information could not be read. Your saved data has not been changed; clear this site's browser data only if you want to start over.");
@@ -300,3 +464,7 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     showNotice("Offline support could not be enabled. Open the app from its local launcher or a secure website address.");
   });
 }
+
+window.setInterval(() => {
+  if (resetExpiredCardPayments()) render();
+}, 60_000);

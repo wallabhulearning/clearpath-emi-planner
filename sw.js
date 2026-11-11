@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "clearpath-shell-v3";
+const CACHE_NAME = "clearpath-shell-v4";
 const APP_SHELL = [
   "./",
   "./index.html",

@@ -32,9 +32,24 @@
 
       <section class="summary-grid" aria-label="Your repayment summary">
         <article class="summary-card summary-primary">
-          <div class="summary-label"><span class="summary-icon" aria-hidden="true">↗</span> Total left to pay</div>
-          <p class="summary-value" id="total-remaining">₹0</p>
-          <p class="summary-foot" id="loan-count">Across 0 loans</p>
+          <div class="summary-label"><span class="summary-icon" aria-hidden="true">↗</span> Total amount due</div>
+          <p class="summary-value" id="total-due">₹0</p>
+          <p class="summary-foot" id="loan-count">0 loans · 0 cards</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon income-icon" aria-hidden="true">▤</span> Total card limit</div>
+          <p class="summary-value" id="total-card-limit">₹0</p>
+          <p class="summary-foot">Combined limits of your cards</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon leftover-icon" aria-hidden="true">＋</span> Available card limit</div>
+          <p class="summary-value" id="available-card-limit">₹0</p>
+          <p class="summary-foot">Card limits minus card balances</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon expense-icon" aria-hidden="true">✓</span> Amount paid this month</div>
+          <p class="summary-value" id="card-paid-summary">₹0</p>
+          <p class="summary-foot">Payments entered for your cards</p>
         </article>
         <article class="summary-card">
           <div class="summary-label"><span class="summary-icon income-icon" aria-hidden="true">＋</span> Monthly salary</div>
@@ -49,12 +64,12 @@
         <article class="summary-card">
           <div class="summary-label"><span class="summary-icon leftover-icon" aria-hidden="true">＝</span> Left after payments</div>
           <p class="summary-value" id="leftover-summary">₹0</p>
-          <p class="summary-foot">Salary minus your loan payments</p>
+          <p class="summary-foot">Salary minus EMIs and card payments</p>
         </article>
         <article class="summary-card">
-          <div class="summary-label"><span class="summary-icon" aria-hidden="true">◷</span> Debt-free date</div>
+          <div class="summary-label"><span class="summary-icon" aria-hidden="true">◷</span> Loan payoff date</div>
           <p class="summary-value date-value" id="debt-free-date">—</p>
-          <p class="summary-foot">Latest projected loan payoff</p>
+          <p class="summary-foot">Latest loan payoff; cards not projected</p>
         </article>
       </section>
 
@@ -113,6 +128,50 @@
             <p class="privacy-note"><span aria-hidden="true">▣</span> Your information stays in this browser on this device.</p>
           </section>
         </aside>
+        <section class="panel cards-panel" aria-labelledby="cards-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Credit accounts</p>
+              <h2 id="cards-heading">Credit cards</h2>
+            </div>
+            <span class="count-pill" id="card-count-pill">0 cards</span>
+          </div>
+          <div class="cards-content">
+            <div>
+              <div class="card-list" id="card-list" aria-live="polite"></div>
+              <div class="empty-state card-empty-state" id="card-empty-state">
+                <span class="empty-icon" aria-hidden="true">▤</span>
+                <h3>No cards added yet</h3>
+                <p>Add your credit-card limit, current amount due, and payments made this month.</p>
+              </div>
+            </div>
+            <div class="card-editor">
+              <p class="eyebrow">Add to your plan</p>
+              <h3 id="card-form-heading">Add a card</h3>
+              <form id="card-form">
+                <label for="card-name">Card name</label>
+                <input id="card-name" name="name" type="text" maxlength="60" placeholder="e.g. Rewards card" required>
+
+                <label for="card-limit">Total card limit (₹)</label>
+                <input id="card-limit" name="limit" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 100000" required>
+
+                <label for="card-due">Current amount due (₹)</label>
+                <input id="card-due" name="due" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 25000" required>
+                <p class="field-help">Enter what you still owe now; don’t deduct payments already reflected in this balance.</p>
+
+                <label for="card-paid">Amount paid this month (₹)</label>
+                <input id="card-paid" name="paid" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 5000" required>
+                <p class="field-help">This amount resets automatically when a new month starts.</p>
+
+                <div class="form-actions">
+                  <button class="button button-primary" id="submit-card" type="submit">Add card <span aria-hidden="true">＋</span></button>
+                  <button class="button button-quiet" id="cancel-card-edit" type="button" hidden>Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <p class="panel-footnote">Available card limit is total card limits minus current card balances. Total amount due combines your loan balances and card balances. Card payments are tracked separately and reset each month.</p>
+        </section>
       </section>
       <footer class="footer">Small steps, steady progress. <span>On PC, run run-clearpath.bat, then choose Install Clearpath in your browser menu.</span></footer>
     </main>
