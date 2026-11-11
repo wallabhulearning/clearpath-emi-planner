@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101b2c">
+    <meta name="description" content="A personal EMI and loan payoff planner.">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="app-icon.svg" type="image/svg+xml">
+    <title>Clearpath — EMI payoff planner</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Clearpath home">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        <span>clearpath<span class="brand-period">.</span></span>
+      </a>
+      <span class="topbar-note"><span class="status-dot"></span> Your personal payoff planner</span>
+      <button class="topbar-install" id="install-app" type="button" hidden>Install app</button>
+    </header>
+
+    <main class="page">
+      <section class="intro">
+        <p class="eyebrow">A clearer path to debt-free</p>
+        <h1>Know what’s left.<br><span>Plan what’s next.</span></h1>
+        <p class="intro-copy">Keep your loans in one place and see your projected final payment, payoff date, and what your monthly commitments leave you.</p>
+      </section>
+
+      <p class="notice" id="notice" role="status" hidden></p>
+
+      <section class="summary-grid" aria-label="Your repayment summary">
+        <article class="summary-card summary-primary">
+          <div class="summary-label"><span class="summary-icon" aria-hidden="true">↗</span> Total left to pay</div>
+          <p class="summary-value" id="total-remaining">₹0</p>
+          <p class="summary-foot" id="loan-count">Across 0 loans</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon income-icon" aria-hidden="true">＋</span> Monthly salary</div>
+          <p class="summary-value" id="salary-summary">₹0</p>
+          <p class="summary-foot">Your take-home income</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon expense-icon" aria-hidden="true">−</span> Monthly loan payments</div>
+          <p class="summary-value" id="payments-summary">₹0</p>
+          <p class="summary-foot">Amount you pay toward loans</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon leftover-icon" aria-hidden="true">＝</span> Left after payments</div>
+          <p class="summary-value" id="leftover-summary">₹0</p>
+          <p class="summary-foot">Salary minus your loan payments</p>
+        </article>
+        <article class="summary-card">
+          <div class="summary-label"><span class="summary-icon" aria-hidden="true">◷</span> Debt-free date</div>
+          <p class="summary-value date-value" id="debt-free-date">—</p>
+          <p class="summary-foot">Latest projected loan payoff</p>
+        </article>
+      </section>
+
+      <section class="content-grid">
+        <section class="panel loans-panel" aria-labelledby="loans-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Your accounts</p>
+              <h2 id="loans-heading">Loans &amp; EMIs</h2>
+            </div>
+            <span class="count-pill" id="loan-count-pill">0 loans</span>
+          </div>
+          <div class="loan-list" id="loan-list" aria-live="polite"></div>
+          <div class="empty-state" id="empty-state">
+            <span class="empty-icon" aria-hidden="true">↗</span>
+            <h3>Your plan starts here</h3>
+            <p>Add your first loan to see how many payments are left and when you’re projected to finish.</p>
+          </div>
+          <p class="panel-footnote">Monthly loan payments are added automatically from the EMI amounts above. Payoff estimates assume your balance already includes all remaining costs, with no new interest or fees.</p>
+        </section>
+
+        <aside class="side-column">
+          <section class="panel form-panel" aria-labelledby="form-heading">
+            <p class="eyebrow">Add to your plan</p>
+            <h2 id="form-heading">Add a loan</h2>
+            <form id="loan-form">
+              <label for="loan-name">Loan or EMI name</label>
+              <input id="loan-name" name="name" type="text" maxlength="60" placeholder="e.g. Home loan" required>
+
+              <label for="loan-remaining">Total amount remaining (₹)</label>
+              <input id="loan-remaining" name="remaining" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 250000" required>
+
+              <label for="loan-payment">Monthly payment (₹)</label>
+              <input id="loan-payment" name="payment" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="e.g. 12000" required>
+
+              <label for="loan-date">Next payment date</label>
+              <input id="loan-date" name="dueDate" type="date" required>
+              <p class="field-help">Used to estimate the date of your final payment.</p>
+
+              <div class="form-actions">
+                <button class="button button-primary" id="submit-loan" type="submit">Add loan <span aria-hidden="true">＋</span></button>
+                <button class="button button-quiet" id="cancel-edit" type="button" hidden>Cancel</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel budget-panel" aria-labelledby="budget-heading">
+            <p class="eyebrow">Your monthly picture</p>
+            <h2 id="budget-heading">Income &amp; payments</h2>
+            <form id="budget-form">
+              <label for="salary">Monthly salary received (₹)</label>
+              <input id="salary" name="salary" type="number" min="0" step="0.01" inputmode="decimal" placeholder="e.g. 60000">
+              <p class="field-help">Your total monthly EMI is calculated automatically from the loans you add.</p>
+              <button class="button button-secondary" type="submit">Save salary</button>
+            </form>
+            <p class="privacy-note"><span aria-hidden="true">▣</span> Your information stays in this browser on this device.</p>
+          </section>
+        </aside>
+      </section>
+      <footer class="footer">Small steps, steady progress. <span>On PC, run run-clearpath.bat, then choose Install Clearpath in your browser menu.</span></footer>
+    </main>
+  </body>
+</html>
